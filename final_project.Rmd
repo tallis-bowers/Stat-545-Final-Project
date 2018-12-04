@@ -7,13 +7,26 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
+library(ggplot2)
 ```
 
 ## Introduction
 
 Importance sampling and Markov Chain Monte Carlo (MCMC) sampling are methods we have looked at in detail this semester. Both of these procedures provide methods for estimating expectations of functions with respect to some underlying distribution from which it is impossible or infeasible to sample directly.  We saw that both of these methods have limitations, however.  Most notably, importance sampling provides a very poor, albeit consistent, estimator when the target distribution is on a high dimensional space, and MCMC has trouble converging to stationary distribution when the target distribution is multi-modal.  
 
+The method of annealed importance sampling (AIS) was originally designed as an alternative sampler for target distributions which are not easily sampled from via the methods mentioned in the previous paragraph. In some sense, AIS combines the ideas behind importance sampling and MCMC, however.  At a very basic level AIS creates many Markov Chains, each of which provides a single sample point.  The collection of "transition" points in a Markov Chain, are then used to create a weight associated with the final sample point coming from this chain.  The details of this process are discussed in the proceeding section.
+
+## Theory
+
+Given an intractable target distribution $p_0$, AIS seeks to find a tractable proposal distribution $p_n$ as well as intermediate distributions $p_i$ for $i=n-1, n-2, ..., 2,1$ so that each distribution is in some sense "close" its preceeding distribution. The only necessary constraint on this intermediate distributions is that the support of $p_j$ is always covered by $p_{j+1}$.  In order to move through these distributions from the proposal to the target with a Markov Chain, we need to define transition probabilities $T_j(x, x')$ which will allow us to move from a point sampled from $p_{j+1}$ to a point sampled from $p_j$. Just as in MCMC we require that each of these transition probabilities ergodic and have $p_j$ as their stationary distributions.
+
 ## Method
+
+```{r}
+fun1 <- function(x) dnorm(x, 0, 1)
+dat <- data.frame(x = seq(-10, 10, 0.05))
+ggplot(dat, aes(x = x)) + stat_function(fun = fun1, color = "red")
+```
 
 ## Application
 
@@ -21,4 +34,6 @@ Importance sampling and Markov Chain Monte Carlo (MCMC) sampling are methods we 
 
 ## References
 
-Neal, R. M. (1998). *Annealed Importance Sampling*. Retrieved from http://www.cs.toronto.edu/~radford/ftp/ais-rev.pdf
+Kristiadi, A. (2018). *Introduction to Annealed Importance Sampling*. Retrieved from https://wiseodd.github.io/techblog/2017/12/23/annealed-importance-sampling/
+
+Neal, R. M. (2001). Statistics and computing. *Annealed importance sampling*, 11(2), 125-139.
