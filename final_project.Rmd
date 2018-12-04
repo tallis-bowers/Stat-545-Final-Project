@@ -1,0 +1,24 @@
+---
+title: "Annealed Importance Sampling Report"
+author: "Usama Kamran, Patrick Ghallager, and Tallis Bowers"
+date: "December 15, 2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Introduction
+
+Importance sampling and Markov Chain Monte Carlo sampling are methods we have looked at in detail this semester. Both of these procedures provide methods for estimating expectations of functions with respect to some underlying distribution for which it is impossible or infeasible to sample from directly.  We saw that both of these methods have limitations, however.  Most notably, importance sampling provides a very poor, albeit consistent, estimator when the target distribution is on a high dimensional space.  
+
+## Method
+
+## Application
+
+## Conclusion
+
+## References
+
+Neal, R. M. (1998). *Annealed Importance Sampling*. Retrieved from http://www.cs.toronto.edu/~radford/ftp/ais-rev.pdf
