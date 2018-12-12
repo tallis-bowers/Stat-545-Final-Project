@@ -3,22 +3,62 @@ title: "Annealed Importance Sampling Report"
 author: "Usama Kamran, Patrick Ghallager, and Tallis Bowers"
 date: "December 15, 2018"
 output: pdf_document
+indent: true
+#header-includes:
+#    - \usepackage{setspace}\doublespacing
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
 library(ggplot2)
+library(gridExtra)
 ```
 
 ## Introduction
 
-Importance sampling and Markov Chain Monte Carlo (MCMC) sampling are methods we have looked at in detail this semester. Both of these procedures provide methods for estimating expectations of functions with respect to some underlying distribution from which it is impossible or infeasible to sample directly.  We saw that both of these methods have limitations, however.  Most notably, importance sampling provides a very poor, albeit consistent, estimator when the target distribution is on a high dimensional space, and MCMC has trouble converging to stationary distribution when the target distribution is multi-modal.  
+\indent\indent Importance sampling and Markov Chain Monte Carlo (MCMC) sampling are methods we have looked at in detail this semester. Both of these procedures provide methods for estimating expectations of functions with respect to some underlying distribution from which it is impossible or infeasible to sample directly.  We saw that both of these methods have limitations, however.  Most notably, importance sampling provides a very poor, albeit consistent, estimator when the target distribution is on a high dimensional space, and MCMC has trouble converging to stationary distribution when the target distribution is multi-modal.  
 
 The method of annealed importance sampling (AIS) was originally designed as an alternative sampler for target distributions which are not easily sampled from via the methods mentioned in the previous paragraph. In some sense, AIS combines the ideas behind importance sampling and MCMC, however.  At a very basic level AIS creates many Markov Chains, each of which provides a single sample point.  The collection of "transition" points in a Markov Chain, are then used to create a weight associated with the final sample point coming from this chain.  The details of this process are discussed in the proceeding section.
 
 ## Theory
 
-Given an intractable target distribution $p_0$, AIS seeks to find a tractable proposal distribution $p_n$ as well as intermediate distributions $p_i$ for $i=n-1, n-2, ..., 2,1$ so that each distribution is in some sense "close" its preceeding distribution. The only necessary constraint on this intermediate distributions is that the support of $p_j$ is always covered by $p_{j+1}$.  In order to move through these distributions from the proposal to the target with a Markov Chain, we need to define transition probabilities $T_j(x, x')$ which will allow us to move from a point sampled from $p_{j+1}$ to a point sampled from $p_j$. Just as in MCMC we require that each of these transition probabilities ergodic and have $p_j$ as their stationary distributions.
+\indent\indent Given an intractable target distribution $p_0$, AIS seeks to find a tractable proposal distribution $p_n$ as well as intermediate distributions $p_i$ for $i=n-1, n-2, ..., 2,1$ so that each distribution is in some sense "close" its preceeding distribution. The only necessary constraint on this intermediate distributions is that the support of $p_j$ is always covered by $p_{j+1}$.  In order to move through these distributions from the proposal to the target with a Markov Chain, we need to define transition probabilities $T_j(x, x')$ which will allow us to move from a point sampled from $p_{j+1}$ to a point sampled from $p_j$. Just as in MCMC we require that each of these transition probabilities be ergodic and have $p_j$ as their stationary distributions. 
+
+Because only the probability density $p_n$ need be tractable in the above set-up, we will let $f_j$ be a function such that $p_j \propto f_j$ for all $j=0,1,...,n-1$.  The annealed importance sampling algorithm then proceeds as follows:
+\[
+\begin{cases}
+\mbox{Sample } x_{n-1} \mbox{ from } p_n(\cdot ) \\
+\mbox{Sample } x_{n-2} \mbox{ from } T_{n-1}(x_{n-1}, \cdot ) \\
+\vdots \\
+\mbox{Sample } x_0 \mbox{ from } T_{1}(x_1, \cdot).
+\end{cases}
+\]
+The point $x_0$ in the above algorithm needs an associated weight for calculating expectations with respect to the target distribution $p_0$, and this weight is given by
+\[
+w = \frac{f_{n-1}(x_{n-1})}{f_n(x_{n-1})} \frac{f_{n-2}(x_{n-2})}{f_{n-1}(x_{n-2})} \cdots \frac{f_{1}(x_{1})}{f_2(x_{1})} \frac{f_{0}(x_{0})}{f_1(x_{0})}.
+\]
+
+In order to see that this process indeed produces an "importance sample", let us consider the joint distribution of the points $(x_{n-1}, x_{n-2}, ..., x_1, x_0)$ from the algorithm above.  By construction, this joint density is proportional to
+\[
+g(x_{n-1}, x_{n-2}, ..., x_1, x_0) = f_n(x_{n-1}) T_{n-1}(x_{n-1}, x_{n-2}) \cdots T_2(x_2, x_1) T_1(x_1, x_0).
+\]
+Now, we want to consider the joint density of $(x_{n-1}, x_{n-2}, ..., x_1, x_0)$ if $x_0$ had been sampled from $p_0$ directly, and the other points are sampled from the reversals of the transition kernels.  This is, in some sense, the "target" distribution for $(x_{n-1}, x_{n-2}, ..., x_1, x_0)$.  We can define the reversals of the above transitions as
+\[
+\tilde{T}_{j}(x^*, x) = T_j (x, x^*) \frac{f_j(x)}{f_j (x^*)}
+\]
+for all $j = 1,2,...,n-1$.  Then, we can see that the "target" joint density is proportional to
+\[
+f(x_{n-1}, x_{n-2}, ..., x_1, x_0) = f_0(x_0) \tilde{T}_{1}(x_0, x_1) \cdots \tilde{T}_{n-2}(x_{n-3}, x_{n-2}) \tilde{T}_{n-1}(x_{n-2}, x_{n-1}) 
+\]
+\[
+= \frac{f_0 (x_0)}{f_1 (x_0)} T_1 (x_1, x_0) \frac{f_1 (x_1)}{f_2 (x_1)} T_1 (x_2, x_1) \cdots \frac{f_{n-2} (x_{n-2})}{f_{n-1} (x_{n-2})} T_{n-1} (x_{n-1}, x_{n-2}) f_{n-1}(x_{n-1}).
+\]
+Finally, using the basic idea of importance sampling, we see that we can find an expectation of a function with respect to $f$ using samples from $g$ by calculating a weighted average of the function with weights given by
+\[
+\frac{f(x_{n-1}, x_{n-2}, ..., x_1, x_0)}{g(x_{n-1}, x_{n-2}, ..., x_1, x_0)} = \frac{f_{n-1}(x_{n-1})}{f_n(x_{n-1})} \frac{f_{n-2}(x_{n-2})}{f_{n-1}(x_{n-2})} \cdots \frac{f_{1}(x_{1})}{f_2(x_{1})} \frac{f_{0}(x_{0})}{f_1(x_{0})} = w,
+\]
+which are the weights defined in the algorithm above.  Therefore, the annealed importance sampling process with give a consistent estimator of any expectation we want to calculate.  In the proceeding sections, we will look at how AIS is often used in practice.
+
 
 ## Method
 
@@ -42,6 +82,61 @@ ggplot(dat, aes(x = x)) +
 ```
 
 ## Application
+
+\indent\indent We will attempt to estimate two expectations using AIS in this section. First, we will estimate the expectation of a simple Gaussian in order to insure that we can correctly code the AIS algorithm.  We will assume that we have created a valid annealed importance sample if the estiamted expectation is close to the known true expectation of the target Gaussian.  The second expectation will be that of a multi-dimensional distribution which would be difficult to estimate using MCMC or importance sampling alone.
+
+For our first application of the AIS algorithm, we want to estimate the mean of a Gaussian with mean 5 and variance 3 $\mathcal{N}(5,3)$ using the standard normal $\mathcal{N}(0,1)$ as a proposal distribution.  If implemented correctly, the AIS algorithm should give a sample $(x^{(1)}, x^{(2)}, ..., x^{(n)})$ and associated weights $(w^{(1)}, w^{(2)}, ..., w^{(n)})$ whose weighted average is near the true mean of the target distribution, i.e. $\sum_{i=1}^n (x^{(i)}w^{(i)}) / \sum_{i=1}^n w^{(i)} \approx 5$.  There are several hyperparameters which we need to consider in order to implement this algorithm.  We need to choose the number of transition probabilities $t$, the number of MCMC steps used with each transition kernel $M$, and the number of samples to draw from the proposal distribution $N$.  As this is our first implementation of AIS, we would like to investigate how each of these hyperparameters affects the accuracy of the final estimate.  In order to do this, we will vary the hyperparameters over a range of possible combinations and run the AIS algorithm 20 times for each combination, i.e. get 20 estimates of the target expectation for each hyperparameter combination.  These 20 estimates will then be used to estimate the mean and standard deviation of the estimated expectation for each combination.  The results are preseneted in the table below.
+
+```{r}
+set.seed(914)
+
+ais_func <- function(iters, steps, MH_steps, n){
+  tot <- rep(0,iters)
+  prop.fun <- function(x) exp(-(x^2)/2)
+  targ.fun <- function(x) exp(-((x-5)^2)/6)
+  
+  for(j in 1:iters){
+  samp <- rnorm(n)
+  weights <- rep(1, n)
+  transit <- function(xx, nn, ll, f){
+      for(t in 1:nn){
+        a <- runif(ll)
+        new <- xx + rnorm(ll)
+        t.probs <- f(new) / f(xx)
+        index <- a < t.probs
+        xx <- ifelse(index, new, xx)
+      }
+      return(xx)
+  }
+  
+  for(i in 1:steps){
+    old_f <- function(x) prop.fun(x)^(1-(i-1)/steps)*targ.fun(x)^((i-1)/steps)
+    new_f <- function(x) prop.fun(x)^(1-i/steps)*targ.fun(x)^(i/steps)
+    weights <- weights*new_f(samp)/old_f(samp)
+    if(i < steps) samp <- transit(samp, MH_steps, n, new_f)
+  }
+  tot[j] <- sum(weights*samp)/sum(weights)
+  }
+  return(c(mean(tot), sd(tot)))
+}
+
+dat <- data.frame(t = c(0), M = c(0), N = c(0), Mean = c(0), SD = c(0))
+temp <- round(ais_func(20, 20, 100, 1000), digits=3)
+dat <- rbind(dat, data.frame(t = 20, M = 100, N = 1000, Mean = temp[1], SD = temp[2]))
+
+temp <- round(ais_func(20, 40, 100, 1000), digits=3)
+dat <- rbind(dat, data.frame(t = 40, M = 100, N = 1000, Mean = temp[1], SD = temp[2]))
+
+temp <- round(ais_func(20, 20, 200, 1000), digits=3)
+dat <- rbind(dat, data.frame(t = 20, M = 200, N = 1000, Mean = temp[1], SD = temp[2]))
+
+temp <- round(ais_func(20, 20, 100, 2000), digits=3)
+dat <- rbind(dat, data.frame(t = 20, M = 100, N = 2000, Mean = temp[1], SD = temp[2]))
+
+dat <- dat[-1,]
+grid.table(dat, rows = NULL)
+```
+
 
 ## Conclusion
 
