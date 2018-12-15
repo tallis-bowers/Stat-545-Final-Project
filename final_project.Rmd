@@ -22,11 +22,11 @@ library(dplyr)
 
 \indent\indent Importance sampling and Markov Chain Monte Carlo (MCMC) sampling are methods we have looked at in detail this semester. Both of these procedures provide methods for estimating expectations of functions with respect to some underlying distribution from which it is impossible or infeasible to sample directly.  We saw that both of these methods have limitations, however.  Most notably, importance sampling provides a very poor, albeit consistent, estimator when the target distribution is on a high dimensional space, and MCMC has trouble converging to stationary distribution when the target distribution is multi-modal.  
 
-The method of annealed importance sampling (AIS) was originally designed as an alternative sampler for target distributions which are not easily sampled from via the methods mentioned in the previous paragraph. In some sense, AIS combines the ideas behind importance sampling and MCMC.  At a very basic level AIS creates many Markov Chains, each of which provides a single sample point.  The collection of "transition" points in a Markov Chain, are then used to create a weight associated with the final sample point coming from this chain.  The details of this process are discussed in the proceeding section.
+The method of annealed importance sampling (AIS) was originally designed as an alternative sampler for target distributions which are not easily sampled from via the methods mentioned in the previous paragraph. In some sense, AIS combines the ideas behind importance sampling and MCMC.  At a very basic level AIS creates many Markov Chains, each of which provides a single sample point.  The collection of "transition" points in a Markov Chain, are then used to create a weight associated with the final sample point coming from this chain.  The details of this process are discussed in the following section.
 
 ## Theory
 
-\indent\indent Given an intractable target distribution $p_0$, AIS seeks to find a tractable proposal distribution $p_n$ as well as intermediate distributions $p_i$ for $i=n-1, n-2, ..., 2,1$ so that each distribution is in some sense "close" to its preceeding distribution. The only necessary constraint on this intermediate distributions is that the support of $p_j$ is always covered by $p_{j+1}$.  In order to move through these distributions from the proposal to the target with a Markov Chain, we need to define transition probabilities $T_j(x, x')$ which will allow us to move from a point sampled from $p_{j+1}$ to a point sampled from $p_j$. Just as in MCMC we require that each of these transition probabilities be ergodic and have $p_j$ as their stationary distributions. 
+\indent\indent Given an intractable target distribution $p_0$, AIS seeks to find a tractable proposal distribution $p_n$ as well as intermediate distributions $p_i$ for $i=n-1, n-2, ..., 2,1$ so that each distribution is generally similiar to its preceeding distribution. The only necessary constraint on this intermediate distributions is that the support of $p_j$ is always covered by $p_{j+1}$.  In order to move through these distributions from the proposal to the target with a Markov Chain, we need to define transition probabilities $T_j(x, x')$ which will allow us to move from a point sampled from $p_{j+1}$ to a point sampled from $p_j$. Just as in MCMC we require that each of these transition probabilities be ergodic and have $p_j$ as their stationary distributions. 
 
 Because only the probability density $p_n$ need be tractable in the above set-up, we will let $f_j$ be a function such that $p_j \propto f_j$ for all $j=0,1,...,n-1$.  The annealed importance sampling algorithm then proceeds as follows:
 \[
@@ -46,7 +46,7 @@ In order to see that this process indeed produces an "importance sample", let us
 \[
 g(x_{n-1}, x_{n-2}, ..., x_1, x_0) = f_n(x_{n-1}) T_{n-1}(x_{n-1}, x_{n-2}) \cdots T_2(x_2, x_1) T_1(x_1, x_0).
 \]
-Now, we want to consider the joint density of $(x_{n-1}, x_{n-2}, ..., x_1, x_0)$ if $x_0$ had been sampled from $p_0$ directly, and the other points are sampled from the reversals of the transition kernels.  This is, in some sense, the "target" distribution for $(x_{n-1}, x_{n-2}, ..., x_1, x_0)$.  We can define the reversals of the above transitions as
+Now, we would like to consider the joint density of $(x_{n-1}, x_{n-2}, ..., x_1, x_0)$ if $x_0$ had been sampled from $p_0$ directly, and the other points are sampled from the reversals of the transition kernels.  This is the "target" distribution for $(x_{n-1}, x_{n-2}, ..., x_1, x_0)$.  We can define the reversals of the above transitions as
 \[
 \tilde{T}_{j}(x^*, x) = T_j (x, x^*) \frac{f_j(x)}{f_j (x^*)}
 \]
@@ -57,7 +57,7 @@ f(x_{n-1}, x_{n-2}, ..., x_1, x_0) = f_0(x_0) \tilde{T}_{1}(x_0, x_1) \cdots \ti
 \[
 = \frac{f_0 (x_0)}{f_1 (x_0)} T_1 (x_1, x_0) \frac{f_1 (x_1)}{f_2 (x_1)} T_1 (x_2, x_1) \cdots \frac{f_{n-2} (x_{n-2})}{f_{n-1} (x_{n-2})} T_{n-1} (x_{n-1}, x_{n-2}) f_{n-1}(x_{n-1}).
 \]
-Finally, using the basic idea of importance sampling, we see that we can find an expectation of a function with respect to $f$ using samples from $g$ by calculating a weighted average of the function with weights given by
+Finally, using the basic idea of importance sampling, we can find an expectation of a function with respect to $f$ using samples from $g$ by calculating a weighted average of the function with weights given by
 \[
 \frac{f(x_{n-1}, x_{n-2}, ..., x_1, x_0)}{g(x_{n-1}, x_{n-2}, ..., x_1, x_0)} = \frac{f_{n-1}(x_{n-1})}{f_n(x_{n-1})} \frac{f_{n-2}(x_{n-2})}{f_{n-1}(x_{n-2})} \cdots \frac{f_{1}(x_{1})}{f_2(x_{1})} \frac{f_{0}(x_{0})}{f_1(x_{0})} = w,
 \]
