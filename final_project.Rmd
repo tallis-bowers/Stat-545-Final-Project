@@ -1,6 +1,6 @@
 ---
 title: "Annealed Importance Sampling Report"
-author: "Usama Kamran, Patrick Ghallager, and Tallis Bowers"
+author: "Tallis Bowers"
 date: "December 15, 2018"
 output: pdf_document
 indent: true
@@ -143,8 +143,6 @@ dat <- data.frame(t = c(20, 40, 20, 20),
                   N = c(1000, 1000, 1000, 2000), 
                   Mean = c(temp1[1], temp2[1], temp3[1], temp4[1]), 
                   SD = c(temp1[2], temp2[2], temp3[2], temp4[2]))
-
-dat <- dat[-1,]
 kable(dat, row.names = NA)
 ```
 
@@ -234,6 +232,8 @@ kable(dat, row.names = NA)
 There is no obvious benefit of the AIS algorithm, but we can see that AIS was able to estimate the probability very accurately.  We were able to successfully implement the algorithm for the more complicated multi-variate distribution.
 
 ## Conclusion
+
+
 
 ## References
 
