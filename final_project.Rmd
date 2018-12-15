@@ -13,6 +13,9 @@ header-includes:
 knitr::opts_chunk$set(echo = FALSE)
 library(ggplot2)
 library(knitr)
+library(mvtnorm)
+library(plot3D)
+library(dplyr)
 ```
 
 ## Introduction
@@ -63,17 +66,15 @@ which are the weights defined in the algorithm above.  Therefore, the annealed i
 
 ## Method
 
-We have our algorithm, but the problems of intermediate distributions and transition proposals remain.  Our intermediate distributions will be set as annealing between our initial proposal distribution, $f_n(x)$, and our target disbtribution, $f_0(x)$:
+We have our algorithm, but the problems of intermediate distributions and transition proposals remain.  In practice, these functions are defined in a simple way.  Intermediate distributions are often set as annealing between our initial proposal distribution, $f_n(x)$, and our target disbtribution, $f_0(x)$:
 
 $f_j(x) = f_0(x)^{\beta_j}f_n(x)^{1-\beta_j}$
 
-where $1 = \beta_0 > \beta_1 > \cdots \beta_{n-1} > \beta_n = 0.
+where $1 = \beta_0 > \beta_1 > \cdots \beta_{n-1} > \beta_n = 0$.
 
-By making a symmetric proposal such as $\mathcal{N}(0,I)$, our acceptance probability is from Metropolis-Hastings, simply:
+In order to define transitions between these intermediate distributions, we will just use Metropolis-Hastings.  So, we can simply run MCMC for a fixed number of iterations to move from $p_{j+1}$ to $p_j$.  After each transition, we can recalculate the weights, and the algorithm can be run until the last MCMC allows us to sample from $p_1$.  This final sample, arrived at using MCMC, is a weighted sample from the target distribution $p_0$.
 
-$A_j(x, x') = \frac{f_j(x')}{f_j(x)}$.
-
-As a visual example, below is an annealing betwen $\mathcal{N}(0,1)$ and $\mathcal{N}(8,\sqrt{2})$ with 5 intermediate distributions and linear spacing of the &\beta_j$:
+As a visual example, below is an annealing betwen $\mathcal{N}(0,1)$ and $\mathcal{N}(8,\sqrt{2})$ with 5 intermediate distributions and linear spacing of the $\beta_j$:
 
 ```{r}
 dat <- data.frame(x = seq(-3,15,0.05))
@@ -133,18 +134,15 @@ ais_func <- function(iters, steps, MH_steps, n){
   return(c(mean(tot), sd(tot)))
 }
  
-dat <- data.frame(t = c(0), M = c(0), N = c(0), Mean = c(0), SD = c(0))
-temp <- round(ais_func(20, 20, 100, 1000), digits=3)
-dat <- rbind(dat, data.frame(t = 20, M = 100, N = 1000, Mean = temp[1], SD = temp[2]))
-
-temp <- round(ais_func(20, 40, 100, 1000), digits=3)
-dat <- rbind(dat, data.frame(t = 40, M = 100, N = 1000, Mean = temp[1], SD = temp[2]))
-
-temp <- round(ais_func(20, 20, 200, 1000), digits=3)
-dat <- rbind(dat, data.frame(t = 20, M = 200, N = 1000, Mean = temp[1], SD = temp[2]))
-
-temp <- round(ais_func(20, 20, 100, 2000), digits=3)
-dat <- rbind(dat, data.frame(t = 20, M = 100, N = 2000, Mean = temp[1], SD = temp[2]))
+temp1 <- round(ais_func(20, 20, 100, 1000), digits=3)
+temp2 <- round(ais_func(20, 40, 100, 1000), digits=3)
+temp3 <- round(ais_func(20, 20, 200, 1000), digits=3)
+temp4 <- round(ais_func(20, 20, 100, 2000), digits=3)
+dat <- data.frame(t = c(20, 40, 20, 20), 
+                  M = c(100, 100, 200, 100), 
+                  N = c(1000, 1000, 1000, 2000), 
+                  Mean = c(temp1[1], temp2[1], temp3[1], temp4[1]), 
+                  SD = c(temp1[2], temp2[2], temp3[2], temp4[2]))
 
 dat <- dat[-1,]
 kable(dat, row.names = NA)
@@ -152,8 +150,88 @@ kable(dat, row.names = NA)
 
 In all of the hyper parameter settings, the mean of the estimates is very close to the true mean (5).  We might be a little surprised to see such a large standard deviation in all of the settings, however, it is helpful to note that this methodology was not intended for use in a such a nice setting.  Although its error may seem large in this setting, because we can use regular Monte Carlo here and get a near perfect estimate, the settings for which AIS was designed are ones in which no other good estimators exist.  In more complicated settings, a standard deviation of 0.1 on a mean might be considered very acceptable.  It is important to note how the standard deviation changes with the hyperparameters here, though.  It seems that doubling the number of MCMC steps at each transition didn't improve accuracy at all.  This is probably because after just 100 steps we were able to attain a good sample from the next transition distribution.  Doubling the sample size and number of transition densities, however, was effective in increasing accuracy.  
 
-In our second application of AIS, we will attempt to 
+In our second application of AIS, we will estimate a probability with respect to the probability density proportional to the function
+\[
+f(x,y) = \mid sin(xy) \mid\cdot I(x\in (0,2\pi), y\in (0,2\pi)).
+\]
+This function would be difficult to normalize because it is a complicated function of $x$ and $y$, and the variables are not independent.  We know, however, that the density must be symmetric, and thus we must have $P(X < Y) = 0.5$ with respect to this distribution.  This will be the quantity we estimate because we know its true value.  Now, let us look at a contour plot of the function proportional to the density from which we want to sample.
 
+```{r}
+datf <- data.frame(x = seq(0, 2*pi, 0.05), y = seq(0, 2*pi, 0.05))
+n <- nrow(datf)
+mm <- matrix(rep(0, n^2), nrow = n)
+for(i in 1:n){
+  for(j in 1:n){
+    mm[i,j] <- abs(sin(datf[i,1]*datf[j,2]))
+  }
+}
+conts <- list(x = datf$x, y = datf$y, z = mm)
+
+image2D(conts, xlab = "x", ylab = "y",
+        contour = list(levels = 0, col = "black", lwd = 2),
+        shade = 0.1, main = "Contour Plot of sin(xy)", clab = "m")
+```
+
+As we can see this function is multi-modal, and thus difficult for traditional MCMC sampling methods.  We hope that this will be a good setting in which to demonstrate that AIS can outperform simple annealed sampling.  In order to assess this, we will attempt to estimate the above probability using both simple annealed sampling and AIS.  The results for both methods are listed in the following table.
+
+```{r}
+set.seed(914)
+
+func1 <- function(n){
+  aa <- rmvnorm(n, mean = c(0,0), 
+                  sigma = matrix(c(1,0,0,1), nrow = 2, byrow = T))
+  while(sum(aa<0) > 0){
+    aa <- aa[apply(aa, 1, function(x) sum(x < 0)) == 0, ]
+    aa <- rbind(aa, rmvnorm((n-nrow(aa)), mean = c(0,0), 
+                  sigma = matrix(c(1,0,0,1), nrow = 2, byrow = T)))
+  }
+  return(aa)
+}
+
+ais_func <- function(iters, steps, MH_steps, n){
+  tot <- rep(0,iters)
+  tot2 <- rep(0, iters)
+  prop.fun <- function(x, y) exp(-(x^2)/2)*exp(-(y^2)/2)*((x>0)&(x<2*pi)&(y>0)&(y<2*pi))
+  targ.fun <- function(x, y) abs(sin(x*y))*((x>0)&(x<2*pi)&(y>0)&(y<2*pi))
+  
+  for(j in 1:iters){
+  samp <- func1(n)
+  weights <- rep(1, n)
+  transit <- function(xx, nn, ll, f){
+      for(t in 1:nn){
+        a <- runif(ll)
+        new <- xx + rmvnorm(ll, mean = c(0,0), 
+                  sigma = matrix(c(1,0,0,1), nrow = 2, byrow = T))
+        t.probs <- f(new[,1], new[,2]) / f(xx[,1], xx[,2])
+        index <- a < t.probs
+        xx[,1] <- ifelse(index, new[,1], xx[,1])
+        xx[,2] <- ifelse(index, new[,2], xx[,2])
+      }
+      return(xx)
+  }
+  
+  for(i in 1:steps){
+    old_f <- function(x, y) prop.fun(x, y)^(1-(i-1)/steps)*targ.fun(x, y)^((i-1)/steps)
+    new_f <- function(x, y) prop.fun(x, y)^(1-i/steps)*targ.fun(x, y)^(i/steps)
+    weights <- weights*new_f(samp[,1], samp[,2])/old_f(samp[,1], samp[,2])
+    if(i < steps) samp <- transit(samp, MH_steps, n, new_f)
+  }
+  samp2 <- transit(samp, MH_steps, n, new_f)
+  tot[j] <- sum(weights*(samp[,1] < samp[,2]))/sum(weights)
+  tot2[j] <- sum(samp2[,1] < samp2[,2])/n
+  }
+  return(c(mean(tot), sd(tot), mean(tot2), sd(tot2)))
+}
+ 
+bb <- ais_func(20, 40, 200, 1000)
+bb <- round(bb, digits = 3)
+dat <- data.frame(Method = c("Annealed", "AIS"), Mean = c(bb[3], bb[1]), 
+                  SD = c(bb[4], bb[2]))
+
+kable(dat, row.names = NA)
+```
+
+There is no obvious benefit of the AIS algorithm, but we can see that AIS was able to estimate the probability very accurately.  We were able to successfully implement the algorithm for the more complicated multi-variate distribution.
 
 ## Conclusion
 
