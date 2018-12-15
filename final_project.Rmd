@@ -140,7 +140,7 @@ kable(dat, row.names = NA)
 
 In all of the hyper parameter settings, the mean of the estimates is very close to the true mean (5).  We might be a little surprised to see such a large standard deviation in all of the settings, however, it is helpful to note that this methodology was not intended for use in a such a nice setting.  Though, its error may seem large in this setting, because we can use regular Monte Carlo here and get a near perfect estimate, the settings for which AIS was designed are ones in which no other good estimators exist.  In more complicated settings, a standard deviation of 0.1 on a mean might be considered very acceptable.  It is important to note how the standard deviation changes with the hyperparameters here, though.  It seems that doubling the number of MCMC steps at each transition didn't improve accuracy at all.  This is probably because after just 100 steps we were able to attain a good sample from the next transition distribution.  Doubling the sample size and number of transition densities, however, was effect in increasing accuracy.  
 
-The second application of AIS we will attempt to implement is
+In our second application of AIS, we will attempt to 
 
 
 ## Conclusion
